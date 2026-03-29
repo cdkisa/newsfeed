@@ -28,6 +28,10 @@ dev = [
     "aiosqlite>=0.20.0",
 ]
 
+[tool.setuptools.packages.find]
+where = [".."]
+include = ["backend*"]
+
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
