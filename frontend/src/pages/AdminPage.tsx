@@ -45,9 +45,11 @@ function PeopleTab({ adminKey }: { adminKey: string }) {
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: api.getPeople })
   const [name, setName] = useState('')
   const [sourceForm, setSourceForm] = useState<{ personId: number; type: SourceType; url: string } | null>(null)
+  const [expandedPerson, setExpandedPerson] = useState<number | null>(null)
   const createPerson = useMutation({ mutationFn: (n: string) => api.admin.createPerson({ name: n }, adminKey), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['people'] }); setName('') } })
   const deletePerson = useMutation({ mutationFn: (id: number) => api.admin.deletePerson(id, adminKey), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['people'] }) })
-  const addSource = useMutation({ mutationFn: (data: { personId: number; type: string; url: string }) => api.admin.addSource(data.personId, { type: data.type, url: data.url }, adminKey), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['people'] }); setSourceForm(null) } })
+  const addSource = useMutation({ mutationFn: (data: { personId: number; type: string; url: string }) => api.admin.addSource(data.personId, { type: data.type, url: data.url }, adminKey), onSuccess: (_d, vars) => { queryClient.invalidateQueries({ queryKey: ['people'] }); queryClient.invalidateQueries({ queryKey: ['sources', vars.personId] }); setSourceForm(null) } })
+  const deleteSource = useMutation({ mutationFn: (data: { sourceId: number; personId: number }) => api.admin.deleteSource(data.sourceId, adminKey), onSuccess: (_d, vars) => { queryClient.invalidateQueries({ queryKey: ['people'] }); queryClient.invalidateQueries({ queryKey: ['sources', vars.personId] }) } })
 
   return (
     <div className="space-y-4">
@@ -58,12 +60,18 @@ function PeopleTab({ adminKey }: { adminKey: string }) {
       {people.map((p: Person) => (
         <div key={p.id} className="bg-white border rounded-lg p-4">
           <div className="flex justify-between items-center">
-            <div><p className="font-medium">{p.name}</p><p className="text-xs text-gray-500">{p.source_count} sources</p></div>
+            <div>
+              <p className="font-medium">{p.name}</p>
+              <button onClick={() => setExpandedPerson(expandedPerson === p.id ? null : p.id)} className="text-xs text-gray-500 hover:text-gray-700">
+                {p.source_count} sources {expandedPerson === p.id ? '▲' : '▼'}
+              </button>
+            </div>
             <div className="flex gap-2">
               <button onClick={() => setSourceForm({ personId: p.id, type: 'blog', url: '' })} className="text-xs text-blue-600 hover:underline">+ Source</button>
               <button onClick={() => deletePerson.mutate(p.id)} className="text-xs text-red-600 hover:underline">Delete</button>
             </div>
           </div>
+          {expandedPerson === p.id && <SourceList personId={p.id} adminKey={adminKey} onDelete={(sourceId) => deleteSource.mutate({ sourceId, personId: p.id })} />}
           {sourceForm?.personId === p.id && (
             <form onSubmit={(e) => { e.preventDefault(); addSource.mutate(sourceForm) }} className="mt-3 flex gap-2">
               <select value={sourceForm.type} onChange={(e) => setSourceForm({ ...sourceForm, type: e.target.value as SourceType })} className="px-2 py-1 border rounded text-sm">
@@ -74,6 +82,24 @@ function PeopleTab({ adminKey }: { adminKey: string }) {
               <button type="button" onClick={() => setSourceForm(null)} className="px-3 py-1 border text-sm rounded">Cancel</button>
             </form>
           )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SourceList({ personId, adminKey, onDelete }: { personId: number; adminKey: string; onDelete: (id: number) => void }) {
+  const { data: sources = [], isLoading } = useQuery({ queryKey: ['sources', personId], queryFn: () => api.admin.getSources(personId, adminKey) })
+  if (isLoading) return <p className="text-xs text-gray-400 mt-2">Loading...</p>
+  if (sources.length === 0) return <p className="text-xs text-gray-400 mt-2">No sources yet.</p>
+  return (
+    <div className="mt-2 space-y-1">
+      {sources.map((s) => (
+        <div key={s.id} className="flex items-center gap-2 text-xs bg-gray-50 rounded px-2 py-1.5">
+          <span className="font-medium text-gray-700 w-20">{s.type}</span>
+          <span className="text-gray-500 flex-1 truncate">{s.url}</span>
+          <span className={`px-1.5 py-0.5 rounded text-[10px] ${s.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>{s.active ? 'active' : 'inactive'}</span>
+          <button onClick={() => onDelete(s.id)} className="text-red-500 hover:text-red-700">x</button>
         </div>
       ))}
     </div>

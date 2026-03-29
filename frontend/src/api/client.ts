@@ -36,6 +36,8 @@ export const api = {
       fetchJson<import('../types').Person>(`/admin/people/${id}`, { method: 'PUT', body: JSON.stringify(data), headers: { 'X-Admin-Key': key } }),
     deletePerson: (id: number, key: string) =>
       fetchJson<void>(`/admin/people/${id}`, { method: 'DELETE', headers: { 'X-Admin-Key': key } }),
+    getSources: (personId: number, key: string) =>
+      fetchJson<import('../types').Source[]>(`/admin/people/${personId}/sources`, { headers: { 'X-Admin-Key': key } }),
     addSource: (personId: number, data: { type: string; url: string }, key: string) =>
       fetchJson<import('../types').Source>(`/admin/people/${personId}/sources`, { method: 'POST', body: JSON.stringify(data), headers: { 'X-Admin-Key': key } }),
     deleteSource: (id: number, key: string) =>

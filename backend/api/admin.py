@@ -51,6 +51,15 @@ async def delete_person(person_id: int, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
 
+@router.get("/people/{person_id}/sources", response_model=list[SourceOut])
+async def list_sources(person_id: int, db: AsyncSession = Depends(get_db)):
+    person = await db.get(Person, person_id)
+    if not person:
+        raise HTTPException(404, "Person not found")
+    result = await db.execute(select(Source).where(Source.person_id == person_id))
+    return result.scalars().all()
+
+
 @router.post("/people/{person_id}/sources", response_model=SourceOut, status_code=201)
 async def add_source(person_id: int, body: SourceCreate, db: AsyncSession = Depends(get_db)):
     person = await db.get(Person, person_id)
