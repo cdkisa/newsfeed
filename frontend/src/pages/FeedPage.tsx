@@ -18,7 +18,7 @@ export default function FeedPage() {
       {data && (
         <>
           <p className="text-xs text-gray-500">{data.total} items</p>
-          <div className="space-y-3">{data.items.map((item) => <ContentCard key={item.id} item={item} />)}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{data.items.map((item) => <ContentCard key={item.id} item={item} />)}</div>
           {data.total > data.page_size && (
             <div className="flex justify-center gap-2 pt-4">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Previous</button>
