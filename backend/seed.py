@@ -1,8 +1,8 @@
 import asyncio
 from slugify import slugify
 from sqlalchemy import select
-from backend.database import async_session
-from backend.models import Tag
+from backend.database import async_session, engine
+from backend.models import Base, Tag
 
 INITIAL_TAGS = [
     "AI Coding Workflows",
@@ -14,6 +14,8 @@ INITIAL_TAGS = [
 ]
 
 async def seed_tags():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     async with async_session() as db:
         for name in INITIAL_TAGS:
             slug = slugify(name)
