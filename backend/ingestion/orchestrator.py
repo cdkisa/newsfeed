@@ -40,10 +40,11 @@ async def run_ingestion(db: AsyncSession) -> int:
             existing = await db.execute(select(ContentItem).where(ContentItem.url == raw.url))
             if existing.scalar_one_or_none():
                 continue
-            item = ContentItem(source_id=source.id, person_id=source.person_id, title=raw.title, url=raw.url, body=raw.body, source_type=raw.source_type, published_at=raw.published_at, processing_status=ProcessingStatus.pending)
+            published_at = raw.published_at.replace(tzinfo=None) if raw.published_at and raw.published_at.tzinfo else raw.published_at
+            item = ContentItem(source_id=source.id, person_id=source.person_id, title=raw.title, url=raw.url, body=raw.body, source_type=raw.source_type, published_at=published_at, processing_status=ProcessingStatus.pending)
             db.add(item)
             total_new += 1
-        source.last_fetched_at = datetime.now(timezone.utc)
+        source.last_fetched_at = datetime.utcnow()
     await db.commit()
     logger.info("Ingestion complete: %d new items", total_new)
     return total_new

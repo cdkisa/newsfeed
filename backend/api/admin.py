@@ -87,6 +87,12 @@ async def create_tag(body: TagCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/ingest/trigger", response_model=IngestTriggerOut)
 async def trigger_ingest():
-    from backend.scheduler import run_ingestion_now
-    await run_ingestion_now()
-    return IngestTriggerOut(status="started", message="Ingestion triggered")
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        from backend.scheduler import run_ingestion_now
+        await run_ingestion_now()
+        return IngestTriggerOut(status="started", message="Ingestion triggered")
+    except Exception as e:
+        logger.exception("Ingestion trigger failed")
+        return IngestTriggerOut(status="error", message=str(e))

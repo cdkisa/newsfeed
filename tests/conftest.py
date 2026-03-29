@@ -1,9 +1,16 @@
 import pytest
+from unittest.mock import patch
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.models import Base
 from backend.api.deps import get_db
 from backend.main import app
+
+
+@pytest.fixture(autouse=True)
+async def _override_admin_key():
+    with patch("backend.config.settings.admin_api_key", "change-me-in-production"):
+        yield
 
 
 @pytest.fixture(autouse=True)
