@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import date
 from sqlalchemy import select
@@ -8,6 +9,8 @@ from backend.ai.trending import generate_daily_digest
 from backend.models import ContentItem, ProcessingStatus
 
 logger = logging.getLogger(__name__)
+
+LLM_DELAY_SECONDS = 4
 
 async def process_new_content(db: AsyncSession) -> int:
     result = await db.execute(
@@ -20,7 +23,9 @@ async def process_new_content(db: AsyncSession) -> int:
         await db.commit()
         try:
             item.summary = await summarize_content(item)
+            await asyncio.sleep(LLM_DELAY_SECONDS)
             tags = await tag_content(item, db)
+            await asyncio.sleep(LLM_DELAY_SECONDS)
             item.tags = tags
             item.processing_status = ProcessingStatus.completed
             processed += 1
@@ -30,6 +35,9 @@ async def process_new_content(db: AsyncSession) -> int:
         await db.commit()
 
     if processed > 0:
-        await generate_daily_digest(db, target_date=date.today())
+        try:
+            await generate_daily_digest(db, target_date=date.today())
+        except Exception:
+            logger.exception("Failed to generate daily digest")
     logger.info("AI pipeline complete: %d/%d items processed", processed, len(items))
     return processed
